@@ -2,9 +2,6 @@ import { useMemo, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import 'fullcalendar/skeleton.css';
-import 'fullcalendar/themes/classic/theme.css';
-import 'fullcalendar/themes/classic/palette.css';
 import { Card, CardContent } from '@ui/card';
 import { useTasks } from './useTasks';
 

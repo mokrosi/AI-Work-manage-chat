@@ -55,5 +55,34 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef6ff 100%);
   }
+}
+
+.fc {
+  font-family: inherit;
+}
+
+.fc-toolbar-title {
+  font-size: 1.1rem !important;
+  font-weight: 600;
+}
+
+.fc-button {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  text-transform: none !important;
+}
+
+.fc-button:hover {
+  opacity: 0.9;
+}
+
+.fc-event {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.fc-view-harness {
+  min-height: 580px;
 }
