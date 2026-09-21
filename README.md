@@ -107,6 +107,30 @@ npm run prisma:migrate --workspace=backend
 npm run prisma:seed --workspace=backend
 ```
 
+## Testing
+
+Run the automated backend test suite from the repository root:
+
+```bash
+npm test
+```
+
+This executes the Node.js test runner for the backend, including coverage for task execution, approvals, and AI gateway configuration.
+
+For a backend-only run:
+
+```bash
+npm run test --workspace=backend
+```
+
+### Verified status
+
+As of 2026-09-21, the project passes:
+
+- 10 backend tests
+- Backend build
+- Frontend build
+
 ## Development
 
 Start the backend in watch mode:

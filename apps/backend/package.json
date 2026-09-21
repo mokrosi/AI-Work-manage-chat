@@ -6,8 +6,11 @@
   "scripts": {
     "build": "nest build",
     "start": "nest start",
+    "dev": "nest start --watch",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
+    "test": "node --test --require ts-node/register --require tsconfig-paths/register \"src/**/*.spec.ts\"",
+    "test:watch": "node --test --watch --require ts-node/register --require tsconfig-paths/register \"src/**/*.spec.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",

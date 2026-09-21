@@ -10,6 +10,7 @@ import {
   getScheduleToolInputSchema,
   updateTaskToolInputSchema,
 } from '@application/tools/task.tools';
+import { buildRuntimeContext } from '@infrastructure/ai/openai-gateway';
 
 export type ChatResult =
   | { type: 'message'; text: string; tools: string[] }
@@ -60,19 +61,24 @@ function formatClientTime(now: Date, timezone: string): {
 function buildSystemPrompt(timezone: string): string {
   const now = new Date();
   const { dateLine, timeLine } = formatClientTime(now, timezone);
+  const context = buildRuntimeContext(now, timezone);
 
   return [
     'You are Agent 1, The Communicator: a helpful personal assistant for a private work calendar.',
     `Today is ${dateLine}. The current local time is ${timeLine}. The user's timezone is ${timezone}.`,
+    `Current timestamp (ISO-8601): ${context.timestampIso}. Current day of week: ${context.dayOfWeek}.`,
     '',
     'The user keeps a calendar of tasks (meetings/events) with a start and end time.',
     '',
     'Rules:',
     '- To answer anything about the schedule, check availability, or create/update/delete an event, you MUST call the relevant tool (this delegates to Agent 2, the Executor). Never invent schedule data or dates yourself.',
     '- Interpret relative dates and times ("Sunday", "next week", "2pm") using the user\'s timezone and the current date/time provided above.',
-    '- Use check_availability to ask whether a slot is free; use get_schedule to list what exists around a window.',
+    '- Use check_availability before create_task whenever the user is proposing a booking or change. Availability must be checked first.',
+    '- Use get_schedule to list what exists around a time window. Never claim a task exists unless a tool result confirms it.',
     '- To create an event, call create_task with a clear title and concrete startTime/endTime. A confirmation prompt will be shown to the user before it is saved, so describe the proposed event clearly.',
     '- update_task and delete_task take effect immediately; if the user asks to modify or remove something, confirm the details but do not ask for separate permission.',
+    '- If critical parameters are missing (like a start time, end time, or duration), ask a clarifying question before attempting the action.',
+    '- Never confirm, deny, or invent an event without first executing a tool call and using the returned result as the source of truth.',
     '- If the user is just chatting and no calendar action is needed, reply conversationally.',
     '- Be concise, friendly, and use the user\'s language when it is not English.',
   ].join('\n');
@@ -80,6 +86,11 @@ function buildSystemPrompt(timezone: string): string {
 
 @Injectable()
 export class AgentOrchestratorService {
+  private readonly maxToolSteps = Math.min(
+    3,
+    Number.parseInt(process.env.OPENROUTER_MAX_TOOL_STEPS ?? '3', 10) || 3,
+  );
+
   constructor(
     @Inject(ILlmGateway) private readonly llmGateway: ILlmGateway,
     private readonly executor: TaskExecutorService,
@@ -149,7 +160,7 @@ export class AgentOrchestratorService {
       system,
       prompt: message,
       tools: this.buildTools(userId),
-      maxSteps: 6,
+      maxSteps: this.maxToolSteps,
     });
 
     const pending = result.toolResults.find((r) => {
