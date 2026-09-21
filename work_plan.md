@@ -14,13 +14,13 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 
 
 
-* **Agent 2: The Executor (Calendar & DB Operations Agent)**
-* **Role:** Acts as the backend specialist strictly dedicated to executing tools and interacting with the database.
+* **Agent 2: The Executor (Calendar & Database Operations Agent)**
+* **Role:** Acts as the backend specialist responsible for executing calendar and database operations only.
 * **Responsibilities:**
-* Has direct access to the defined application tools (e.g., `check_availability`, `create_task`, `update_task`).
-* Receives structured commands and parameters from Agent 1 (not the raw user prompt).
-* Executes the necessary database queries via the Clean Architecture use cases.
-* Returns raw, structured JSON data (success, failure, or query results) back to Agent 1.
+* Has direct access to the application tools (for example, `check_availability`, `create_task`, and `update_task`).
+* Receives structured commands and validated parameters from Agent 1, not the raw user prompt.
+* Executes the necessary database queries through the Clean Architecture use cases.
+* Returns raw, structured JSON data—such as success, error, or query results—back to Agent 1.
 
 
 
@@ -32,6 +32,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 
 ### Phase 1: System Design and Environment Setup
 
+> **Status: DONE** — npm workspaces monorepo, NestJS backend, React/Vite/Tailwind/shadcn frontend, Postgres 16 in Docker (host port 5433), Prisma.
+
 *Focus: Establishing the repository structure, selecting the stack, and defining the Clean Architecture boundaries.*
 
 * **Task 1.1: Project Initialization.** Set up a monorepo or two separate repositories for the backend (Node.js/NestJS) and frontend (React).
@@ -40,6 +42,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 * **Task 1.4: Feature-Based Scaffolding (Frontend).** Set up the React project with Tailwind CSS and base UI components (e.g., shadcn/ui). Create folders for the `Chat` feature and `Calendar` feature.
 
 ### Phase 2: Domain and Database Implementation (Infrastructure & Domain Layers)
+
+> **Status: DONE** — Task/User entities, Prisma schema + migration applied, `ITaskRepository` interface + Prisma implementation.
 
 *Focus: Defining entities, database schemas, and data access repositories.*
 
@@ -50,6 +54,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 
 ### Phase 3: Business Logic and Tool Creation (Application Layer)
 
+> **Status: DONE** — GetSchedule/CheckAvailability/CreateTask/UpdateTask/DeleteTask use cases (timezone + window validation, double-booking prevention), Zod tool schemas, `TaskExecutorService`.
+
 *Focus: Building the use cases that Agent 2 will trigger.*
 
 * **Task 3.1: Read Use Cases.** Implement the `GetSchedule` and `CheckAvailability` use cases. These will handle the logic of validating timezones and querying the repository.
@@ -57,6 +63,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 * **Task 3.3: Tool Wrapping.** Wrap these use cases into standardized "Tools" or "Functions" that an AI model can understand, ensuring strict input validation schema (e.g., using Zod) for expected dates and strings.
 
 ### Phase 4: Multi-Agent System Integration (AI Infrastructure)
+
+> **Status: DONE** — Agent 1 = LLM (Vercel AI SDK v7 + OpenAI), Agent 2 = deterministic `TaskExecutorService`, `AgentOrchestratorService` with human-in-the-loop interception for `create_task`. Requires `OPENAI_API_KEY` to enable the chat endpoint.
 
 *Focus: Connecting the LLMs and defining the communication between Agent 1 and Agent 2.*
 
@@ -67,6 +75,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 
 ### Phase 5: API and Controller Development (Presentation Layer)
 
+> **Status: DONE** — `POST /api/chat`, `POST /api/chat/confirm`, full CRUD `/api/tasks`, global exception filter (clean HTTP codes: 4xx domain errors, 503 no-AI-key, 504 AI timeouts). REST smoke-tested.
+
 *Focus: Exposing the backend logic to the frontend via REST APIs.*
 
 * **Task 5.1: Chat API Endpoint.** Create a POST endpoint that accepts the user's message and timezone, feeds it into the Multi-Agent service, and returns/streams the AI's response.
@@ -74,6 +84,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 * **Task 5.3: Error Handling & Logging.** Implement a global exception filter to catch database errors, AI timeout errors, or invalid tool calls, returning clean HTTP status codes to the frontend.
 
 ### Phase 6: Frontend Development (React)
+
+> **Status: DONE** — Axios API client, React Query provider, Chat page (Agent 2 tool badges + executing indicator, Confirm/Cancel approval card), Calendar page (FullCalendar), and cross-feature query invalidation on task approval.
 
 *Focus: Building the two pages and wiring them to the backend.*
 
@@ -83,6 +95,8 @@ To use two agents simultaneously and effectively, we will implement a **Delegati
 * **Task 6.4: Cross-Feature Synchronization.** Implement state invalidation. Ensure that if the user creates a meeting via the Chat page, the Calendar page data is immediately invalidated and refetched so the new event appears seamlessly.
 
 ### Phase 7: Edge Cases, Testing, and Refinement
+
+> **Status: DONE (HITL + UTC boundary) / PARTIAL (e2e)** — 7.1 UTC storage + local display verified; 7.2 Confirm/Cancel safeguard implemented (backend tokens + frontend card); 7.3 REST + full-stack proxy flows smoke-tested. The end-to-end *AI-driven* chat→calendar flow still needs a real `OPENAI_API_KEY`.
 
 *Focus: Hardening the system against real-world usage problems.*
 

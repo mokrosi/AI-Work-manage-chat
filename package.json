@@ -1,0 +1,20 @@
+{
+  "name": "ai-task-management",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Multi-agent AI task & calendar management system",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=backend & npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
