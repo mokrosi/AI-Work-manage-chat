@@ -7,7 +7,7 @@ import { TaskStatus } from '@domain/entities/task.entity';
 import { CreateTaskDto } from './create-task.dto';
 import { ScheduleQueryDto } from './schedule-query.dto';
 import { ChatMessageDto } from './chat-message.dto';
-import { ConfirmApprovalDto } from './confirm-approval.dto';
+import { ConfirmApprovalDto, EditApprovalDto } from './confirm-approval.dto';
 import { UpdateTaskDto } from './update-task.dto';
 
 async function firstErrorFor(instance: object): Promise<string | undefined> {
@@ -95,4 +95,14 @@ test('ConfirmApprovalDto requires a boolean approve flag', async () => {
   valid.token = 'tok-1';
   valid.approve = true;
   assert.equal((await validate(valid as never)).length, 0);
+});
+
+test('EditApprovalDto accepts a valid edited proposal', async () => {
+  const dto = new EditApprovalDto();
+  dto.token = 'tok-1';
+  dto.title = 'Updated task';
+  dto.startTime = '2026-09-22T15:00:00.000Z';
+  dto.endTime = '2026-09-22T16:00:00.000Z';
+
+  assert.equal((await validate(dto as never)).length, 0);
 });

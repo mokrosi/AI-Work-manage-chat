@@ -45,7 +45,7 @@ export function resolveModelConfig(
 
   const maxToolSteps = Math.max(
     1,
-    Number.parseInt(env.OPENROUTER_MAX_TOOL_STEPS ?? '3', 10) || 3,
+    Number.parseInt(env.OPENROUTER_MAX_TOOL_STEPS ?? '8', 10) || 8,
   );
   const timeoutMs = Math.max(
     5_000,

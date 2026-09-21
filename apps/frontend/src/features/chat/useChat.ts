@@ -1,16 +1,43 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { confirmApproval, getUserTimezone, sendChat } from '@lib/api';
+import { confirmApproval, editApproval, getUserTimezone, sendChat } from '@lib/api';
 import type { ChatMessage } from './types';
 
 const TASK_QUERY_KEY = 'tasks';
+const CHAT_STORAGE_KEY = 'taskminder-chat';
+
+function readStoredMessages(): ChatMessage[] {
+  try {
+    const stored = sessionStorage.getItem(CHAT_STORAGE_KEY);
+    return stored ? (JSON.parse(stored) as ChatMessage[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function messageContent(message: ChatMessage): string {
+  if (message.role === 'user' || 'content' in message) return message.content;
+  return `Proposed task: ${message.approval.title} (${message.approval.startTime} to ${message.approval.endTime})`;
+}
 
 export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(readStoredMessages);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState('Ready');
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const idRef = useRef(0);
+  const idRef = useRef(readStoredMessages().reduce((highest, message) => {
+    const value = Number(message.id.replace('msg-', ''));
+    return Number.isFinite(value) ? Math.max(highest, value) : highest;
+  }, 0));
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // Session storage may be unavailable in privacy-restricted browsers.
+    }
+  }, [messages]);
 
   const nextId = useCallback(() => `msg-${++idRef.current}`, []);
 
@@ -20,6 +47,11 @@ export function useChat() {
       if (!trimmed || busy) return;
       setError(null);
       setBusy(true);
+      setStage(/free|available|schedule|calendar/i.test(trimmed) ? 'Checking your calendar...' : 'Understanding your request...');
+      const history = messages.map((message) => ({
+        role: message.role,
+        content: messageContent(message),
+      }));
       setMessages((prev) => [
         ...prev,
         { id: nextId(), role: 'user', content: trimmed },
@@ -29,7 +61,9 @@ export function useChat() {
         const result = await sendChat({
           message: trimmed,
           timezone: getUserTimezone(),
+          history,
         });
+        setStage(result.tools.some((tool) => /availability|schedule/i.test(tool)) ? 'Finding free slots...' : result.tools.length > 0 ? 'Updating your tasks...' : 'Writing a response...');
 
         if (result.type === 'message') {
           setMessages((prev) => [
@@ -63,10 +97,22 @@ export function useChat() {
         ]);
       } finally {
         setBusy(false);
+        setStage('Ready');
       }
     },
-    [busy, nextId],
+    [busy, messages, nextId],
   );
+
+  const editPendingApproval = useCallback(async (messageId: string, values: { title: string; startTime: string; endTime: string }) => {
+    const current = messages.find((message) => message.id === messageId);
+    if (!current || current.role !== 'assistant' || !('approval' in current)) return;
+    try {
+      const approval = await editApproval({ token: current.approval.token, ...values });
+      setMessages((prev) => prev.map((message) => message.id === messageId && message.role === 'assistant' && 'approval' in message ? { ...message, approval } : message));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not edit this proposal');
+    }
+  }, [messages]);
 
   const resolveApproval = useCallback(
     async (messageId: string, token: string, approve: boolean) => {
@@ -111,5 +157,15 @@ export function useChat() {
     [queryClient],
   );
 
-  return { messages, busy, error, send, resolveApproval };
+  const clear = useCallback(() => {
+    setMessages([]);
+    setError(null);
+    try {
+      sessionStorage.removeItem(CHAT_STORAGE_KEY);
+    } catch {
+      // Session storage may be unavailable in privacy-restricted browsers.
+    }
+  }, []);
+
+  return { messages, busy, stage, error, send, resolveApproval, editPendingApproval, clear };
 }

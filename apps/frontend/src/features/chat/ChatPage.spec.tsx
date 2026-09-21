@@ -22,6 +22,7 @@ function wrapper({ children }: { children: ReactNode }) {
 beforeEach(() => {
   api.sendChat.mockReset();
   api.confirmApproval.mockReset();
+  sessionStorage.clear();
 });
 
 describe('ChatPage', () => {
@@ -47,6 +48,7 @@ describe('ChatPage', () => {
     expect(api.sendChat).toHaveBeenCalledWith({
       message: 'Check my day',
       timezone: 'UTC',
+      history: [],
     });
   });
 

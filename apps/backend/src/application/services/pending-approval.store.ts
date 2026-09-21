@@ -12,6 +12,12 @@ export interface PendingApproval {
   expiresAt: Date;
 }
 
+export interface ApprovalEdit {
+  title: string;
+  startTime: Date;
+  endTime: Date;
+}
+
 /**
  * In-memory store for human-in-the-loop approvals (Task 7.2).
  * A create_task tool call does not persist immediately; the approval is
@@ -56,6 +62,18 @@ export class PendingApprovalStore {
       throw new ApplicationError('APPROVAL_EXPIRED', 'Approval has expired');
     }
 
+    return approval;
+  }
+
+  edit(token: string, values: ApprovalEdit): PendingApproval {
+    const approval = this.get(token);
+    if (!values.title.trim() || values.startTime >= values.endTime) {
+      throw new ApplicationError('INVALID_TIME_RANGE', 'A title and valid time range are required');
+    }
+    approval.command = { ...approval.command, title: values.title.trim(), startTime: values.startTime, endTime: values.endTime };
+    approval.title = approval.command.title;
+    approval.startTime = values.startTime.toISOString();
+    approval.endTime = values.endTime.toISOString();
     return approval;
   }
 

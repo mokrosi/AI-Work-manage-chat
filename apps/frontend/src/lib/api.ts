@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ChatResponse, ConfirmResponse, Task, TaskStatus } from './types';
+import { ChatResponse, ConfirmResponse, PendingApproval, Task, TaskStatus } from './types';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -49,6 +49,7 @@ export async function deleteTask(id: string): Promise<Task> {
 export async function sendChat(body: {
   message: string;
   timezone: string;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }): Promise<ChatResponse> {
   const { data } = await api.post<ChatResponse>('/chat', body);
   return data;
@@ -59,5 +60,15 @@ export async function confirmApproval(body: {
   approve: boolean;
 }): Promise<ConfirmResponse> {
   const { data } = await api.post<ConfirmResponse>('/chat/confirm', body);
+  return data;
+}
+
+export async function editApproval(body: {
+  token: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+}): Promise<PendingApproval> {
+  const { data } = await api.post<PendingApproval>('/chat/confirm/edit', body);
   return data;
 }

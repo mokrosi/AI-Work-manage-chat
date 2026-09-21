@@ -71,3 +71,27 @@ test('confirm passes the token and decision to the orchestrator', async () => {
   assert.deepEqual(result, { type: 'approved', data: { ok: true } });
   assert.deepEqual(captured, { token: 'tok-1', approve: true });
 });
+
+test('edit updates a pending approval through the orchestrator', async () => {
+  let captured: { token: string; title: string; startTime: Date; endTime: Date } | undefined;
+  const orchestrator = {
+    handleMessage: async () => ({ type: 'message', text: '', tools: [] }),
+    confirm: async () => ({ type: 'cancelled' }),
+    editApproval: (token: string, values: { title: string; startTime: Date; endTime: Date }) => {
+      captured = { token, ...values };
+      return { token, operation: 'create_task', ...values };
+    },
+  };
+  const controller = new ChatController(orchestrator as never, demoUser as never);
+
+  const result = await controller.edit({
+    token: 'tok-1',
+    title: 'Updated task',
+    startTime: '2026-09-22T15:00:00.000Z',
+    endTime: '2026-09-22T16:00:00.000Z',
+  });
+
+  assert.equal(result.title, 'Updated task');
+  assert.equal(captured?.token, 'tok-1');
+  assert.equal(captured?.startTime.toISOString(), '2026-09-22T15:00:00.000Z');
+});

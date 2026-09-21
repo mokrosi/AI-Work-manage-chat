@@ -1,12 +1,28 @@
 # AI Task Management
 
-A multi-agent task and calendar management system built around Clean Architecture.
+AI Task Management is a friendly workspace for turning conversations into scheduled work. It combines an AI chat assistant with a task calendar while keeping database writes behind explicit user approval.
 
-## Current Status
+This repository is a monorepo containing a NestJS API, React frontend, PostgreSQL database, Prisma data access, and an OpenAI-compatible LLM gateway.
 
-The backend exposes the task CRUD, calendar, chat, and approval endpoints. The frontend provides an AI chat workspace and a calendar command center with direct task CRUD, search, status filters, quick completion, conflict validation, and local-time scheduling.
+## What You Can Do
 
-### Implemented
+The backend exposes task CRUD, calendar, chat, and approval endpoints. The frontend provides Chat, Today, and Calendar views for planning and managing work.
+
+### Chat
+
+- Ask what is on your calendar or whether a time is free.
+- Review, edit, confirm, or cancel proposed task creations in the chat.
+- Continue a conversation while switching between views.
+- Clear chat manually; history is kept for the current browser tab and disappears when the tab closes.
+- Use prompt chips, `/`, `Ctrl/Cmd + K`, or the microphone button where Web Speech is supported.
+
+### Task views
+
+- **Today**: focused daily agenda with previous/next day navigation, quick add, and one-click completion.
+- **Calendar**: week, month, and day views with search, status filtering, direct editing, deletion, and overlap validation.
+- Tasks are stored in UTC and displayed in the browser's local timezone.
+
+### Implemented backend capabilities
 
 Agent 2 - Executor (deterministic task/calendar operations):
 
@@ -23,12 +39,12 @@ Agent 1 - Communicator (`AgentOrchestratorService`):
 - Calls an LLM through the `ILlmGateway` port (OpenAI adapter via the Vercel AI SDK)
 - Exposes the Agent 2 use cases as LLM tools with Zod input schemas
 - Injects the `userId` before delegating to Agent 2
-- Human-in-the-loop: `create_task` returns a pending-approval token instead of writing immediately; the change is saved only after confirmation
+- Human-in-the-loop: `create_task` returns a pending-approval token instead of writing immediately; the proposal can be edited, confirmed, or cancelled
 
 Frontend (`apps/frontend`):
 
 - React + Vite + TypeScript + Tailwind with shadcn-style UI primitives
-- AI chat with approval cards for proposed task creation
+- AI chat with approval cards, conversation persistence, transparent execution stages, prompt chips, and optional voice input
 - Calendar command center with task search, status filters, counts, upcoming tasks, quick completion, and full CRUD editing
 
 ### Known follow-up work
@@ -74,7 +90,7 @@ The domain layer does not depend on Prisma or the AI SDK. Dates are stored as UT
 - Node.js 20 or newer
 - npm
 - Docker Desktop, for PostgreSQL
-- An OpenAI API key (only needed for Agent 1 / chat)
+- An OpenAI-compatible API key (only needed for Agent 1 / chat)
 
 ## Setup
 
@@ -90,14 +106,18 @@ Start PostgreSQL:
 npm run db:up
 ```
 
-Configure the backend environment. Edit `apps/backend/.env` (see `.env.example` for the defaults):
+Configure the backend environment. Edit `apps/backend/.env`:
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/ai_task_db?schema=public
 PORT=3000
 NODE_ENV=development
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=google/gemini-1.5-flash:free
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MAX_TOOL_STEPS=8
+
+# OPENAI_API_KEY and OPENAI_MODEL are also supported.
 ```
 
 Generate the Prisma client, apply migrations, and seed:
@@ -108,33 +128,46 @@ npm run prisma:migrate --workspace=backend
 npm run prisma:seed --workspace=backend
 ```
 
-## Testing
+## Testing and Builds
 
-Run the automated backend test suite from the repository root:
+Run the complete test suite from the repository root:
 
 ```bash
 npm test
 ```
 
-This executes the Node.js test runner for the backend, including coverage for task execution, approvals, and AI gateway configuration.
-
-For a backend-only run:
+Run one workspace:
 
 ```bash
-npm run test --workspace=backend
+npm run test:backend
+npm run test:frontend
+```
+
+Build both applications:
+
+```bash
+npm run build
 ```
 
 ### Verified status
 
 As of 2026-09-21, the project passes:
 
-- 10 backend tests
-- Backend build
-- Frontend build
+- 62 backend tests
+- 27 frontend tests
+- Backend and frontend builds
+
+The frontend build prints a non-blocking Vite chunk-size warning.
 
 ## Development
 
-Start the backend in watch mode:
+Start both applications together:
+
+```bash
+npm run dev
+```
+
+Or start the backend in watch mode:
 
 ```bash
 npm run start:dev --workspace=backend
@@ -165,6 +198,8 @@ Stop PostgreSQL:
 ```bash
 npm run db:down
 ```
+
+Open the frontend at `http://localhost:5173`. The API is available at `http://localhost:3000/api`.
 
 ## Agent 2 Command Contract
 
@@ -213,14 +248,14 @@ Supported operation names are `get_schedule`, `check_availability`, `create_task
 
 ## Agent 1 Orchestration
 
-`AgentOrchestratorService.handleMessage(message, timezone, userId)` runs the LLM with the Agent 2 tools bound and returns either:
+`AgentOrchestratorService.handleMessage(message, timezone, userId, history)` runs the LLM with the Agent 2 tools bound and returns either:
 
 - `{ type: 'message', text }` for conversational replies, or
 - `{ type: 'pending_approval', approval }` when Agent 1 proposes a `create_task`.
 
-`AgentOrchestratorService.confirm(token, approve)` consumes a pending approval. If approved, it runs the deferred `create_task` through `TaskExecutorService`; if cancelled, the pending change is discarded. Approvals expire after 10 minutes.
+`AgentOrchestratorService.confirm(token, approve)` consumes a pending approval. If approved, it runs the deferred `create_task` through `TaskExecutorService`; if cancelled, the pending change is discarded. `editApproval()` updates the proposed title and time before confirmation. Approvals expire after 10 minutes.
 
-These services are wired into `ApplicationModule` but are not yet reachable over HTTP.
+The HTTP endpoints are `POST /api/chat`, `POST /api/chat/confirm`, and `POST /api/chat/confirm/edit`.
 
 ## Project Structure
 
@@ -255,3 +290,35 @@ apps/frontend/
 ```
 
 See [work_plan.md](work_plan.md) for the complete multi-agent implementation roadmap.
+
+## Troubleshooting
+
+### `Request failed with status code 500`
+
+1. Confirm the backend is running on port 3000.
+2. Open `http://localhost:3000/api/health`; it should return a JSON object with `status: "ok"`.
+3. Check that `DATABASE_URL` points to the PostgreSQL container.
+4. For chat, confirm `OPENROUTER_API_KEY` or `OPENAI_API_KEY` is configured.
+5. Check the backend terminal for the structured error code.
+
+### `EADDRINUSE: address already in use :::3000`
+
+Only one backend can listen on port 3000. Stop the old development server, or change `PORT` in the backend environment and the `/api` proxy target in `apps/frontend/vite.config.ts`.
+
+### Tasks do not appear
+
+Check PostgreSQL, run the Prisma migration and seed commands, then refresh the page. Calendar requests use the browser timezone, so verify that the displayed day matches your local timezone.
+
+## Planned Extensions
+
+The current codebase has clear boundaries for future work, but these features are not enabled yet:
+
+- PostgreSQL-backed approval storage for multi-instance deployments.
+- Full RRULE recurrence expansion and series editing.
+- Priority/category fields and richer calendar color taxonomy.
+- Google Calendar, Outlook, and iCal adapters.
+- Scheduled reminders through a worker and notification provider.
+- Semantic search using a search or vector-storage adapter.
+- Authentication and per-user sessions.
+
+These should be added behind application ports and tested against the deterministic task use cases rather than embedded directly in React components or the LLM gateway.

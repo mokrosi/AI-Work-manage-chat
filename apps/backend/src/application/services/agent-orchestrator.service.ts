@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ILlmGateway, LlmTool } from '@application/ports/llm.port';
 import { TaskExecutorService } from '@application/services/task-executor.service';
-import { PendingApprovalStore, PendingApproval } from '@application/services/pending-approval.store';
+import { PendingApprovalStore, PendingApproval, ApprovalEdit } from '@application/services/pending-approval.store';
 import { CreateTaskCommand } from '@application/use-cases/task.use-cases';
 import {
   checkAvailabilityToolInputSchema,
@@ -80,6 +80,7 @@ function buildSystemPrompt(timezone: string): string {
     '- If critical parameters are missing (like a start time, end time, or duration), ask a clarifying question before attempting the action.',
     '- Never confirm, deny, or invent an event without first executing a tool call and using the returned result as the source of truth.',
     '- If the user is just chatting and no calendar action is needed, reply conversationally.',
+    '- Handle every requested operation in the user message; do not stop after completing only the first item.',
     '- Be concise, friendly, and use the user\'s language when it is not English.',
   ].join('\n');
 }
@@ -87,8 +88,8 @@ function buildSystemPrompt(timezone: string): string {
 @Injectable()
 export class AgentOrchestratorService {
   private readonly maxToolSteps = Math.min(
-    3,
-    Number.parseInt(process.env.OPENROUTER_MAX_TOOL_STEPS ?? '3', 10) || 3,
+    8,
+    Number.parseInt(process.env.OPENROUTER_MAX_TOOL_STEPS ?? '8', 10) || 8,
   );
 
   constructor(
@@ -154,11 +155,19 @@ export class AgentOrchestratorService {
     message: string,
     timezone: string,
     userId: string,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
   ): Promise<ChatResult> {
     const system = buildSystemPrompt(timezone);
+    const conversation = history
+      .slice(-20)
+      .map((item) => `${item.role === 'user' ? 'User' : 'Assistant'}: ${item.content}`)
+      .join('\n');
+    const prompt = conversation
+      ? `Conversation so far:\n${conversation}\n\nUser's latest message:\n${message}`
+      : message;
     const result = await this.llmGateway.run({
       system,
-      prompt: message,
+      prompt,
       tools: this.buildTools(userId),
       maxSteps: this.maxToolSteps,
     });
@@ -204,5 +213,9 @@ export class AgentOrchestratorService {
       input: approval.command,
     });
     return { type: 'approved', data };
+  }
+
+  editApproval(token: string, values: ApprovalEdit): PendingApproval {
+    return this.approvals.edit(token, values);
   }
 }

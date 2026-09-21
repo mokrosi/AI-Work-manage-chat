@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsString } from 'class-validator';
 
 export class ConfirmApprovalDto {
   @IsString()
@@ -7,4 +7,20 @@ export class ConfirmApprovalDto {
 
   @IsBoolean()
   approve!: boolean;
+}
+
+export class EditApprovalDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @IsDateString()
+  startTime!: string;
+
+  @IsDateString()
+  endTime!: string;
 }

@@ -277,5 +277,5 @@ test('handleMessage builds a system prompt that includes the user timezone', asy
   assert.match(system, /Agent 1/);
   assert.match(system, /Asia\/Muscat/);
   assert.equal(gateway.calls[0].prompt, 'Hello');
-  assert.equal(gateway.calls[0].maxSteps, 3);
+  assert.equal(gateway.calls[0].maxSteps, 8);
 });

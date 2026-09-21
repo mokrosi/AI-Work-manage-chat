@@ -22,6 +22,7 @@ function wrapper({ children }: { children: ReactNode }) {
 beforeEach(() => {
   api.sendChat.mockReset();
   api.confirmApproval.mockReset();
+  sessionStorage.clear();
 });
 
 describe('useChat', () => {
@@ -51,6 +52,7 @@ describe('useChat', () => {
     expect(api.sendChat).toHaveBeenCalledWith({
       message: 'What is on my calendar?',
       timezone: 'UTC',
+      history: [],
     });
   });
 
