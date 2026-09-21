@@ -4,7 +4,7 @@ A multi-agent task and calendar management system built around Clean Architectur
 
 ## Current Status
 
-The `apps/backend` service (NestJS, Clean Architecture) implements both agent layers as application services, and the `apps/frontend` React app is scaffolded. The backend exposes only a health endpoint so far; the Chat and Calendar REST endpoints are not implemented yet.
+The backend exposes the task CRUD, calendar, chat, and approval endpoints. The frontend provides an AI chat workspace and a calendar command center with direct task CRUD, search, status filters, quick completion, conflict validation, and local-time scheduling.
 
 ### Implemented
 
@@ -28,13 +28,14 @@ Agent 1 - Communicator (`AgentOrchestratorService`):
 Frontend (`apps/frontend`):
 
 - React + Vite + TypeScript + Tailwind with shadcn-style UI primitives
-- App shell with Chat and Calendar tabs (both pages are placeholders)
+- AI chat with approval cards for proposed task creation
+- Calendar command center with task search, status filters, counts, upcoming tasks, quick completion, and full CRUD editing
 
-### Not implemented yet
+### Known follow-up work
 
-- Chat and Calendar REST controllers (only `GET /api/health` exists)
-- Frontend API client, real chat UI, and FullCalendar integration
 - Persistent (non in-memory) pending-approval storage
+- Authentication and multi-user session handling
+- Reminders, recurring tasks, and richer task metadata such as priority or labels
 
 ## Architecture
 

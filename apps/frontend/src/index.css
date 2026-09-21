@@ -55,7 +55,9 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    background: linear-gradient(180deg, #f8fafc 0%, #eef6ff 100%);
+    background:
+      radial-gradient(circle at 85% 0%, rgb(204 251 241 / 0.55), transparent 28rem),
+      linear-gradient(180deg, #f8fafc 0%, #f3f7f6 100%);
   }
 }
 
@@ -69,8 +71,8 @@
 }
 
 .fc-button {
-  background: #0f172a !important;
-  border-color: #0f172a !important;
+  background: #0f766e !important;
+  border-color: #0f766e !important;
   text-transform: none !important;
 }
 
@@ -84,5 +86,17 @@
 }
 
 .fc-view-harness {
-  min-height: 580px;
+  min-height: 620px;
+}
+
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number {
+  color: #475569;
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  color: #94a3b8;
+  font-size: 0.72rem;
 }

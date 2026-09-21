@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   fetchTasks,
+  createTask,
+  updateTask,
+  deleteTask,
   sendChat,
   confirmApproval,
   getUserTimezone,
@@ -10,11 +13,15 @@ import type { Task } from './types';
 const mocks = vi.hoisted(() => {
   const get = vi.fn();
   const post = vi.fn();
+  const put = vi.fn();
+  const deleteRequest = vi.fn();
   return {
     get,
     post,
+    put,
+    deleteRequest,
     axios: {
-      create: vi.fn(() => ({ get, post })),
+      create: vi.fn(() => ({ get, post, put, delete: deleteRequest })),
     },
   };
 });
@@ -38,6 +45,8 @@ const task: Task = {
 beforeEach(() => {
   mocks.get.mockReset();
   mocks.post.mockReset();
+  mocks.put.mockReset();
+  mocks.deleteRequest.mockReset();
 });
 
 describe('fetchTasks', () => {
@@ -74,6 +83,43 @@ describe('sendChat', () => {
       timezone: 'UTC',
     });
     expect(result).toEqual({ type: 'message', text: 'hello', tools: [] });
+  });
+});
+
+describe('task CRUD helpers', () => {
+  it('creates a task with the supplied details', async () => {
+    mocks.post.mockResolvedValue({ data: task });
+
+    const result = await createTask({
+      title: 'Planning',
+      description: null,
+      startTime: task.startTime,
+      endTime: task.endTime,
+      timezone: 'UTC',
+    });
+
+    expect(mocks.post).toHaveBeenCalledWith('/tasks', {
+      title: 'Planning',
+      description: null,
+      startTime: task.startTime,
+      endTime: task.endTime,
+      timezone: 'UTC',
+    });
+    expect(result).toEqual(task);
+  });
+
+  it('updates and deletes a task by id', async () => {
+    mocks.put.mockResolvedValue({ data: task });
+    mocks.deleteRequest.mockResolvedValue({ data: task });
+
+    await updateTask('task-1', { status: 'COMPLETED', timezone: 'UTC' });
+    await deleteTask('task-1');
+
+    expect(mocks.put).toHaveBeenCalledWith('/tasks/task-1', {
+      status: 'COMPLETED',
+      timezone: 'UTC',
+    });
+    expect(mocks.deleteRequest).toHaveBeenCalledWith('/tasks/task-1');
   });
 });
 
