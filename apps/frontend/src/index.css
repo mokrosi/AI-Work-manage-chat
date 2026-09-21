@@ -55,11 +55,15 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    min-width: 320px;
     background:
       radial-gradient(circle at 85% 0%, rgb(204 251 241 / 0.55), transparent 28rem),
       linear-gradient(180deg, #f8fafc 0%, #f3f7f6 100%);
   }
 }
+
+button, input, select { transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease; }
+button:active:not(:disabled) { transform: translateY(1px); }
 
 .fc {
   font-family: inherit;

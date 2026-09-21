@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Bot, Send, Sparkles } from 'lucide-react';
 import { Button } from '@ui/button';
 import { Card, CardContent } from '@ui/card';
 import { Input } from '@ui/input';
@@ -82,17 +83,15 @@ export function ChatPage() {
   }
 
   return (
-    <Card className="flex h-[calc(100vh-8rem)] flex-col">
-      <CardContent className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="flex items-end justify-between gap-4"><div><p className="flex items-center gap-2 text-sm font-semibold text-teal-700"><Sparkles className="h-4 w-4" /> Your planning partner</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Talk it through.</h1><p className="mt-1 text-sm text-slate-500">Ask about time, priorities, or the next task to put on your calendar.</p></div><div className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 sm:flex sm:items-center sm:gap-2"><Bot className="h-3.5 w-3.5 text-teal-600" /> Agent ready</div></div>
+      <Card className="flex h-[calc(100vh-12rem)] min-h-[480px] flex-col border-slate-200/80 shadow-sm">
+      <CardContent className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-6">
         {messages.length === 0 && (
           <div className="my-auto text-center text-sm text-muted-foreground">
-            <p className="text-base font-medium text-foreground">
-              Ask your AI assistant
-            </p>
-            <p className="mx-auto mt-2 max-w-sm">
-              For example: “Do I have time for a 1-hour gym session on Tuesday at
-              3pm? If so, schedule it.”
-            </p>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-700"><Bot className="h-5 w-5" /></div>
+            <p className="mt-4 text-base font-semibold text-foreground">Ask your AI assistant</p>
+            <p className="mx-auto mt-2 max-w-sm leading-6">Try asking whether you have time for something, or let me turn a thought into a scheduled task.</p>
           </div>
         )}
         {messages.map((m) => (
@@ -116,17 +115,18 @@ export function ChatPage() {
           </div>
         )}
       </CardContent>
-      <form onSubmit={onSubmit} className="flex gap-2 border-t p-3">
+      <form onSubmit={onSubmit} className="flex gap-2 border-t bg-slate-50/70 p-3 sm:p-4">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask to check or schedule a task…"
           disabled={busy}
         />
-        <Button type="submit" disabled={busy || !input.trim()}>
-          Send
+        <Button type="submit" size="icon" aria-label="Send message" disabled={busy || !input.trim()}>
+          <Send />
         </Button>
       </form>
-    </Card>
+      </Card>
+    </div>
   );
 }
